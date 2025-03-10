@@ -41,6 +41,7 @@ const userLogin = async (req, res) => {
     console.log("inside login api");
     const { username, password } = req.body;
     const user = await User.findOne({ username }).lean();
+    console.log(user);
     if (!user || !(await comparePassword(password, user.password))) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
