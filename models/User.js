@@ -3,12 +3,6 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    username: {
-      type: String,
-      trim: true,
-      default: null,
-      sparse: true,
-    },
     email: {
       type: String,
       required: true,
@@ -27,7 +21,12 @@ const userSchema = new mongoose.Schema(
     },
     l_name: {
       type: String,
-      minlength: 3,
+    },
+    username: {
+      type: String,
+      trim: true,
+      default: null,
+      sparse: true,
     },
     category: {
       type: String,
@@ -36,7 +35,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔹 Hash password before saving to DB
+//Hash password before saving to DB
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next(); // Skip if password is unchanged
 

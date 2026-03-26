@@ -6,183 +6,182 @@ const {
   updateLinkById,
   getAnalyticsData,
 } = require("../services/profile");
+const apiResponse = require("../utils/apiResponse");
+const catchAsyncErrors = require("../utils/catchAsyncErrors");
 
-// **1. Add a Link to a Profile**
-const addLink = async (req, res) => {
-  try {
-    const { title, url } = req.body;
-    const profile = await Profile.findById(req.params.profileId);
+/**
+ * @desc    Add a Link to a Profile
+ * @route   POST /api/profile/:profileId/link
+ * @access  Private
+ */
+const addLink = catchAsyncErrors(async (req, res) => {
+  const { title, url } = req.body;
+  const profile = await Profile.findById(req.params.profileId);
 
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
-
-    profile.links.push({ title, url });
-    await profile.save();
-    res.status(201).json(profile);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-// **2. Edit a Link**
-const editLink = async (req, res) => {
-  try {
-    const { title, url } = req.body;
-    const profile = await Profile.findById(req.params.profileId);
+  profile.links.push({ title, url });
+  await profile.save();
 
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+  return apiResponse(res, 201, true, "Link added successfully", profile);
+});
 
-    const link = profile.links.id(req.params.linkId);
-    if (!link) return res.status(404).json({ message: "Link not found" });
+/**
+ * @desc    Edit a Link
+ * @route   PUT /api/profile/:profileId/link/:linkId
+ * @access  Private
+ */
+const editLink = catchAsyncErrors(async (req, res) => {
+  const { title, url } = req.body;
+  const profile = await Profile.findById(req.params.profileId);
 
-    link.title = title || link.title;
-    link.url = url || link.url;
-    await profile.save();
-
-    res.json(profile);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-// **3. Delete a Link**
-const deleteLink = async (req, res) => {
-  try {
-    const profile = await Profile.findById(req.params.profileId);
-
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
-
-    profile.links = profile.links.filter(
-      (link) => link._id.toString() !== req.params.linkId
-    );
-    await profile.save();
-
-    res.json({ message: "Link deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const link = profile.links.id(req.params.linkId);
+  if (!link) {
+    return apiResponse(res, 404, false, "Link not found");
   }
-};
 
-// **4. List All Links**
-const listLinks = async (req, res) => {
-  try {
-    const profile = await Profile.findById(req.params.profileId);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+  link.title = title || link.title;
+  link.url = url || link.url;
+  await profile.save();
 
-    res.json(profile.links);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  return apiResponse(res, 200, true, "Link updated successfully", profile);
+});
+
+/**
+ * @desc    Delete a Link
+ * @route   DELETE /api/profile/:profileId/link/:linkId
+ * @access  Private
+ */
+const deleteLink = catchAsyncErrors(async (req, res) => {
+  const profile = await Profile.findById(req.params.profileId);
+
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-// **5. Create User Profile**
-const createUserProfile = async (req, res) => {
-  try {
-    const user = req.user;
-    const profileData = req.body;
-    const profile = await createProfile({ ...profileData, user: user.id });
-    res.status(201).json(profile);
-  } catch (error) {
-    console.log("error ---- ", error);
-    res.status(500).json({ error: error.message });
+  profile.links = profile.links.filter(
+    (link) => link._id.toString() !== req.params.linkId
+  );
+  await profile.save();
+
+  return apiResponse(res, 200, true, "Link deleted successfully");
+});
+
+/**
+ * @desc    List All Links
+ * @route   GET /api/profile/:profileId/links
+ * @access  Private
+ */
+const listLinks = catchAsyncErrors(async (req, res) => {
+  const profile = await Profile.findById(req.params.profileId);
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-// **6. Update User Profile**
-const updateUserProfile = async (req, res) => {
-  try {
-    const user = req.user;
-    const profile = await Profile.findOneAndUpdate(
-      { user: user.id },
-      req.body,
-      {
-        new: true,
-      }
-    );
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+  return apiResponse(res, 200, true, "Links fetched successfully", profile.links);
+});
 
-    res.json(profile);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+/**
+ * @desc    Create User Profile
+ * @route   POST /api/profile
+ * @access  Private
+ */
+const createUserProfile = catchAsyncErrors(async (req, res) => {
+  const user = req.user;
+  const profileData = req.body;
+  const profile = await createProfile({ ...profileData, user: user.id });
+
+  return apiResponse(res, 201, true, "Profile created successfully", profile);
+});
+
+/**
+ * @desc    Update User Profile
+ * @route   PUT /api/profile
+ * @access  Private
+ */
+const updateUserProfile = catchAsyncErrors(async (req, res) => {
+  const user = req.user;
+  const profile = await Profile.findOneAndUpdate(
+    { user: user.id },
+    req.body,
+    { new: true, runValidators: true }
+  );
+
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-// **7. Get Profile Data**
-const getProfileData = async (req, res) => {
-  try {
-    const user = req.user;
-    const profile = await getProfileByUserId(user.id);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+  return apiResponse(res, 200, true, "Profile updated successfully", profile);
+});
 
-    res.status(200).json({ message: "Profile fetched successfully", profile });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+/**
+ * @desc    Get Profile Data (Logged-in user)
+ * @route   GET /api/profile
+ * @access  Private
+ */
+const getProfileData = catchAsyncErrors(async (req, res) => {
+  const user = req.user;
+  const profile = await getProfileByUserId(user.id);
+
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-const getProfileDataFromId = async (req, res) => {
-  try {
-    const profileId = req.params.id;
-    console.log({ profileId });
-    const profile = await getProfileById(profileId);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+  return apiResponse(res, 200, true, "Profile fetched successfully", profile);
+});
 
-    res.status(200).json({ message: "Profile fetched successfully", profile });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+/**
+ * @desc    Get Profile Data by ID (Public)
+ * @route   GET /api/profile/:id
+ * @access  Public
+ */
+const getProfileDataFromId = catchAsyncErrors(async (req, res) => {
+  const profile = await getProfileById(req.params.id);
+
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
   }
-};
 
-const updateLinkData = async (req, res) => {
-  try {
-    const linkId = req.params.id;
-    const user = req.user;
-    const { device, isLink } = req.body;
+  return apiResponse(res, 200, true, "Profile fetched successfully", profile);
+});
 
-    console.log(req.body, "requested");
-    const updatedProfileData = await updateLinkById(
-      user.id,
-      linkId,
-      device,
-      isLink
-    );
-    res
-      .status(200)
-      .json({ message: "Link Data Updated", profile: updatedProfileData });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
-  }
-};
+/**
+ * @desc    Update Link Analytics (Clicks, Devices)
+ * @route   POST /api/profile/link/:id/click
+ * @access  Public
+ */
+const updateLinkData = catchAsyncErrors(async (req, res) => {
+  const linkId = req.params.id;
+  const user = req.user;
+  const { device, isLink } = req.body;
 
-const getProfileAnalytics = async (req, res) => {
-  try {
-    console.log("inisde analytics data");
-    const user = req.user;
-    const {
-      totalLinkClicks,
-      totalShopClicks,
-      deviceClicks,
-      siteClicks,
-      linksData,
-      monthlyClicks,
-      shopsData,
-    } = await getAnalyticsData(user.id);
+  const updatedProfileData = await updateLinkById(
+    user.id,
+    linkId,
+    device,
+    isLink
+  );
 
-    return res.status(200).json({
-      message: "Data Fetched Successfully",
-      totalLinkClicks,
-      totalShopClicks,
-      deviceClicks,
-      siteClicks,
-      linksData,
-      monthlyClicks,
-      shopsData,
-    });
-  } catch (err) {
-    conosle.log(err);
-    res.status(500).json({ error: err.message });
-  }
-};
+  return apiResponse(res, 200, true, "Link analytics updated", updatedProfileData);
+});
+
+/**
+ * @desc    Get Profile Analytics Data
+ * @route   GET /api/profile/analytics
+ * @access  Private
+ */
+const getProfileAnalytics = catchAsyncErrors(async (req, res) => {
+  const user = req.user;
+  const analyticsData = await getAnalyticsData(user.id);
+
+  return apiResponse(res, 200, true, "Analytics data fetched successfully", analyticsData);
+});
 
 module.exports = {
   addLink,
