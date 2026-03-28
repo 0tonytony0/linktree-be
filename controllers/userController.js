@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Profile = require("../models/Profile");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { sentResetMail } = require("../services/mail");
@@ -19,9 +20,12 @@ const userRegister = catchAsyncErrors(async (req, res, next) => {
     return apiResponse(res, 400, false, "First name, email and password are required");
   }
 
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ 
+    $or: [{ email }, { username }] 
+  });
   if (existingUser) {
-    return apiResponse(res, 400, false, "Email already in use");
+    const field = existingUser.email === email ? "Email" : "Username";
+    return apiResponse(res, 400, false, `${field} already in use`);
   }
 
   const newUser = await User.create({
@@ -33,8 +37,30 @@ const userRegister = catchAsyncErrors(async (req, res, next) => {
     category,
   });
 
+  // Automatically create a blank profile for the new user
+  await Profile.create({
+    user: newUser._id,
+    title: username || f_name, // Default title as username or first name
+    bio: "",
+    links: [],
+    shops: [],
+    appreance: {
+      layout: "stack",
+      buttonStyle: "fill-square",
+      buttonColor: "#28A263",
+      buttonFontColor: "#ffffff",
+      font: "Poppins",
+      fontColor: "#000000",
+      theme: "Air Snow",
+      backgroundColor: "#ffffff",
+    }
+  });
+
+  const newUserObj = newUser.toObject();
+  const { password: _, __v, ...userWithoutPassword } = newUserObj;
+
   const token = generateToken(newUser._id);
-  return apiResponse(res, 201, true, "User created successfully", { user: newUser, token });
+  return apiResponse(res, 201, true, "User created successfully", { user: userWithoutPassword, token });
 });
 
 /**
@@ -44,7 +70,9 @@ const userRegister = catchAsyncErrors(async (req, res, next) => {
  */
 const userLogin = catchAsyncErrors(async (req, res) => {
   const { username, password } = req.body;
-  const user = await User.findOne({ username }).lean();
+  const user = await User.findOne({
+    $or: [{ email: username }, { username: username }]
+  }).lean();
 
   if (!user || !(await comparePassword(password, user.password))) {
     return apiResponse(res, 400, false, "Invalid credentials");

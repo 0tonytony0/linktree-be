@@ -12,6 +12,13 @@ const getProfileById = async (profileId) => {
   return await Profile.findById(profileId).lean();
 };
 
+const getProfileByUsername = async (username) => {
+  const User = require("../models/User");
+  const user = await User.findOne({ username }).select("_id");
+  if (!user) return null;
+  return await Profile.findOne({ user: user._id }).lean();
+};
+
 const updateLinkById = async (userId, linkId, deviceType, isLink) => {
   try {
     // Validate deviceType
@@ -158,6 +165,7 @@ module.exports = {
   getProfileByUserId,
   updateProfileData,
   getProfileById,
+  getProfileByUsername,
   updateLinkById,
   getAnalyticsData,
 };

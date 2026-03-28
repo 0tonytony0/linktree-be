@@ -127,10 +127,28 @@ const updateUserProfile = catchAsyncErrors(async (req, res) => {
  */
 const getProfileData = catchAsyncErrors(async (req, res) => {
   const user = req.user;
-  const profile = await getProfileByUserId(user.id);
+  let profile = await getProfileByUserId(user.id);
 
+  // Safeguard: Create profile if it's still missing for an existing user
   if (!profile) {
-    return apiResponse(res, 404, false, "Profile not found");
+    console.log(`Profile not found for user ${user.id}, creating default...`);
+    profile = await Profile.create({
+      user: user.id,
+      title: user.username || user.f_name || "My Page",
+      bio: "",
+      links: [],
+      shops: [],
+      appreance: {
+        layout: "stack",
+        buttonStyle: "fill-square",
+        buttonColor: "#28A263",
+        buttonFontColor: "#ffffff",
+        font: "Poppins",
+        fontColor: "#000000",
+        theme: "Air Snow",
+        backgroundColor: "#ffffff",
+      }
+    });
   }
 
   return apiResponse(res, 200, true, "Profile fetched successfully", profile);
@@ -143,6 +161,21 @@ const getProfileData = catchAsyncErrors(async (req, res) => {
  */
 const getProfileDataFromId = catchAsyncErrors(async (req, res) => {
   const profile = await getProfileById(req.params.id);
+
+  if (!profile) {
+    return apiResponse(res, 404, false, "Profile not found");
+  }
+
+  return apiResponse(res, 200, true, "Profile fetched successfully", profile);
+});
+
+/**
+ * @desc    Get Profile Data by Username (Public)
+ * @route   GET /api/profile/user/:username
+ * @access  Public
+ */
+const getProfileByUsernameController = catchAsyncErrors(async (req, res) => {
+  const profile = await getProfileByUsername(req.params.username);
 
   if (!profile) {
     return apiResponse(res, 404, false, "Profile not found");
@@ -192,6 +225,7 @@ module.exports = {
   updateUserProfile,
   getProfileData,
   getProfileDataFromId,
+  getProfileByUsername: getProfileByUsernameController,
   updateLinkData,
   getProfileAnalytics,
 };

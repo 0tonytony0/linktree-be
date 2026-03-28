@@ -4,6 +4,7 @@ const {
   updateUserProfile,
   getProfileData,
   getProfileDataFromId,
+  getProfileByUsername,
   updateLinkData,
   getProfileAnalytics,
 } = require("../controllers/profileController");
@@ -19,5 +20,6 @@ router.get("/", authMiddleware, getProfileData);
 router.get("/analytics", authMiddleware, getProfileAnalytics);
 
 router.get("/:id", getProfileDataFromId);
+router.get("/user/:username", getProfileByUsername);
 router.put("/link/:id", authMiddleware, updateLinkData);
 module.exports = router;

@@ -25,7 +25,8 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       trim: true,
-      default: null,
+      unique: true,
+      minlength: 3,
       sparse: true,
     },
     category: {

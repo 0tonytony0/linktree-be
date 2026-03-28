@@ -9,6 +9,9 @@ const linksSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image: {
+    type: String,
+  },
   clicks: {
     type: Number,
     default: 0,
@@ -29,6 +32,9 @@ const shopSchema = new mongoose.Schema({
   url: {
     type: String,
     required: true,
+  },
+  image: {
+    type: String,
   },
   clicks: {
     type: Number,
@@ -73,7 +79,7 @@ const profileSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Types.ObjectId,
-      ref: "user",
+      ref: "User",
     },
     title: {
       type: String,
